@@ -1,0 +1,90 @@
+# =============================================================================
+# NEXUS//TWIN — Git ignore
+# Never commit secrets, dependencies, build output, or local agent state.
+# =============================================================================
+
+# --- Dependencies ---
+node_modules/
+.pnpm-store/
+.npm/
+jspm_packages/
+
+# --- Env / secrets (keep *.example tracked) ---
+.env
+.env.*
+!.env.example
+!**/.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+credentials.json
+**/credentials.json
+
+# --- Agent local state (paired device tokens, offline queue) ---
+apps/agent/.nexus-twin/
+**/.nexus-twin/
+offline-queue.json
+**/offline-queue.json
+*.queue.json
+
+# --- Build / Next.js / Turbo ---
+dist/
+build/
+out/
+.next/
+.turbo/
+*.tsbuildinfo
+.vercel/
+
+# --- Electron packaging ---
+apps/agent/release/
+apps/agent/out/
+apps/agent/dist/
+
+# --- Logs / coverage / caches ---
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+coverage/
+.nyc_output/
+.cache/
+.eslintcache
+.parcel-cache/
+*.pid
+*.seed
+
+# --- OS / IDE ---
+.DS_Store
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json.example
+*.swp
+*.swo
+*~
+
+# --- Cursor / local tooling ---
+.cursor/
+.claude/
+
+# --- Test / temp ---
+tmp/
+temp/
+.tmp/
+*.tmp
+*.temp
+
+# --- Misc ---
+*.local
+!*.example
+
+
+# Local npm/pnpm configuration
+.npmrc
