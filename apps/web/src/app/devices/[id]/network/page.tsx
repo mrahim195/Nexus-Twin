@@ -1,10 +1,9 @@
 "use client";
 
-import { DevicePageFrame, useDeviceId, useLive } from "@/hooks/useDevice";
+import { DevicePageFrame, PageSkeleton, useDevice } from "@/hooks/useDevice";
 
 export default function NetworkPage() {
-  const id = useDeviceId();
-  const { live } = useLive(id);
+  const { live, loading } = useDevice();
   const network = live?.metrics as {
     network?: {
       internetConnected: boolean | null;
@@ -27,6 +26,9 @@ export default function NetworkPage() {
 
   return (
     <DevicePageFrame title="NETWORK">
+      {loading && !live ? <PageSkeleton rows={3} /> : null}
+      {!(!live && loading) && (
+      <>
       <div className="panel" style={{ padding: "1.1rem", marginBottom: "1rem" }}>
         <div className="mono" style={{ color: "var(--text-muted)", fontSize: "0.7rem", letterSpacing: "0.1em" }}>
           CONNECTIVITY
@@ -40,19 +42,19 @@ export default function NetworkPage() {
               : "DISCONNECTED"}
         </div>
         <p style={{ color: "var(--text-dim)", fontSize: "0.85rem" }}>
-          Metadata only — no packet interception in this version.
+          Metadata only. No packet interception in this version.
         </p>
       </div>
 
-      <div className="panel" style={{ padding: "1.1rem", marginBottom: "1rem", fontFamily: "var(--font-mono)", fontSize: "0.8rem", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>
+      <div className="panel" style={{ padding: "1.1rem", marginBottom: "1rem", fontFamily: "var(--font-mono)", fontSize: "0.8rem", lineHeight: 1.7, whiteSpace: "pre-wrap", overflowX: "auto" }}>
 {`        YOUR COMPUTER
-              │
-    ┌─────────┼──────────┐
+              |
+    +---------+----------+
 ${apps.slice(0, 3).map((a) => `  ${a.padEnd(12)}`).join("") || "  (apps pending)"}
 `}
       </div>
 
-      <div style={{ display: "grid", gap: "0.55rem" }}>
+      <div className="card-list">
         {ifaces.map((i) => (
           <div key={i.name} className="panel" style={{ padding: "0.9rem 1rem" }}>
             <div className="mono" style={{ fontWeight: 600 }}>{i.name}</div>
@@ -71,6 +73,8 @@ ${apps.slice(0, 3).map((a) => `  ${a.padEnd(12)}`).join("") || "  (apps pending)
           </div>
         )}
       </div>
+      </>
+      )}
     </DevicePageFrame>
   );
 }

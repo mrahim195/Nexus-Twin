@@ -12,7 +12,8 @@ const pairingSchema = new Schema(
     code: { type: String, required: true, unique: true, uppercase: true },
     label: { type: String },
     consumedAt: { type: Date, default: null },
-    expiresAt: { type: Date, required: true, index: true },
+    // TTL index declared once below — do not also set index: true here
+    expiresAt: { type: Date, required: true },
   },
   { timestamps: true }
 );

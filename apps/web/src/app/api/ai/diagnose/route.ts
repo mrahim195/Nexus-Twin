@@ -109,7 +109,7 @@ export async function POST(req: Request) {
       baselines: buildHourlyBaselines(baselineSeries),
     });
 
-    const diagnosis = await diagnoseWithGemini(evidence);
+    const { diagnosis, provider } = await diagnoseWithGemini(evidence);
 
     const saved = await AiDiagnosticModel.create({
       deviceId: device._id,
@@ -146,8 +146,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       id: String(saved._id),
       ...diagnosis,
-      evidencePackage: evidence,
-      provider: process.env.GEMINI_API_KEY ? "gemini" : "deterministic",
+      provider,
     });
   } catch (err) {
     console.error(err);

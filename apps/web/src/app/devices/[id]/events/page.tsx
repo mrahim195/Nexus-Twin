@@ -1,7 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { DevicePageFrame, useDeviceId } from "@/hooks/useDevice";
+import { DevicePageFrame, PageSkeleton, useCachedJson, useDeviceId } from "@/hooks/useDevice";
 
 interface Ev {
   id: string;
@@ -15,30 +14,22 @@ interface Ev {
 
 export default function EventsPage() {
   const id = useDeviceId();
-  const [events, setEvents] = useState<Ev[]>([]);
-
-  const load = useCallback(async () => {
-    const res = await fetch(`/api/devices/${id}/events?limit=100`);
-    if (res.status === 401) {
-      window.location.href = "/login";
-      return;
+  const { data: events, loading } = useCachedJson<Ev[]>(
+    `${id}:events`,
+    `/api/devices/${id}/events?limit=100`,
+    {
+      intervalMs: 15000,
+      pick: (json) => ((json as { events?: Ev[] }).events || []) as Ev[],
     }
-    if (res.ok) {
-      const data = await res.json();
-      setEvents(data.events || []);
-    }
-  }, [id]);
+  );
 
-  useEffect(() => {
-    void load();
-    const t = setInterval(() => void load(), 10000);
-    return () => clearInterval(t);
-  }, [load]);
+  const list = events || [];
 
   return (
     <DevicePageFrame title="EVENTS">
-      <div style={{ display: "grid", gap: "0.5rem" }}>
-        {events.map((e) => (
+      {loading && !list.length ? <PageSkeleton rows={4} /> : null}
+      <div className="card-list">
+        {list.map((e) => (
           <div key={e.id} className="panel" style={{ padding: "0.85rem 1rem" }}>
             <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
               <div className="mono" style={{ fontWeight: 600 }}>{e.title}</div>
@@ -53,7 +44,7 @@ export default function EventsPage() {
             <p style={{ margin: "0.4rem 0 0", color: "var(--text-muted)", fontSize: "0.9rem" }}>{e.message}</p>
           </div>
         ))}
-        {!events.length && (
+        {!list.length && !loading && (
           <div className="panel" style={{ padding: "1.25rem", color: "var(--text-dim)" }}>
             No events yet. Threshold crossings and agent lifecycle events will appear here.
           </div>

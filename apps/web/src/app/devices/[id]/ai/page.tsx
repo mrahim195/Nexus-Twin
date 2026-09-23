@@ -9,8 +9,7 @@ const SUGGESTIONS = [
   "What changed today?",
   "Why did my CPU spike?",
   "Is anything unusual happening?",
-  "Compare today with yesterday.",
-  "Show me my worst performance period today.",
+  "Who are you?",
 ];
 
 interface Diagnosis {
@@ -21,7 +20,7 @@ interface Diagnosis {
   recommendations: string[];
   confidence: string;
   limitations: string[];
-  provider?: string;
+  provider?: "gemini" | "fallback" | string;
 }
 
 export default function AiPage() {
@@ -55,21 +54,30 @@ export default function AiPage() {
     }
   }
 
+  const providerLabel =
+    result?.provider === "gemini"
+      ? "GEMINI"
+      : result?.provider === "fallback"
+        ? "LOCAL RULES"
+        : (result?.provider || "").toUpperCase();
+
   return (
     <DevicePageFrame title="AI DIAGNOSTICS">
       <p style={{ color: "var(--text-muted)", marginTop: 0 }}>
-        Ask your computer… Answers are grounded in telemetry evidence. Gemini is used only when you ask — never continuously.
+        Ask about performance or the product. Gemini answers when available; otherwise local rules are used.
       </p>
 
       <form onSubmit={onSubmit} className="panel" style={{ padding: "1.1rem", marginBottom: "1rem" }}>
-        <label className="label" htmlFor="q">Question</label>
+        <label className="label" htmlFor="q">
+          Question
+        </label>
         <textarea
           id="q"
           className="input"
           rows={3}
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
-          style={{ resize: "vertical" }}
+          style={{ resize: "vertical", minHeight: "5rem" }}
         />
         <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginTop: "0.75rem" }}>
           {SUGGESTIONS.map((s) => (
@@ -77,33 +85,45 @@ export default function AiPage() {
               key={s}
               type="button"
               className="btn btn-ghost"
-              style={{ padding: "0.35rem 0.55rem", fontSize: "0.7rem" }}
+              style={{ padding: "0.45rem 0.65rem", fontSize: "0.7rem", minHeight: "auto" }}
               onClick={() => setQuestion(s)}
             >
               {s}
             </button>
           ))}
         </div>
-        <button className="btn" type="submit" style={{ marginTop: "1rem" }} disabled={loading}>
-          {loading ? "ANALYZING…" : "ASK GEMINI / ANALYZE"}
+        <button
+          className={`btn${loading ? " btn-busy" : ""}`}
+          type="submit"
+          style={{ marginTop: "1rem" }}
+          disabled={loading}
+        >
+          {loading ? "ANALYZING" : "ASK"}
         </button>
       </form>
 
       {error && <p style={{ color: "var(--error)" }}>{error}</p>}
 
       {result && (
-        <div style={{ display: "grid", gap: "0.75rem" }}>
+        <div className="card-list">
           <div className="panel" style={{ padding: "1.1rem" }}>
-            <div className="mono" style={{ color: "var(--accent)", fontSize: "0.75rem", letterSpacing: "0.1em" }}>
-              SUMMARY · CONFIDENCE {result.confidence.toUpperCase()} · {result.provider || "gemini"}
+            <div
+              className="mono"
+              style={{
+                color: result.provider === "gemini" ? "var(--accent)" : "var(--warn)",
+                fontSize: "0.75rem",
+                letterSpacing: "0.1em",
+              }}
+            >
+              {providerLabel} · {result.confidence.toUpperCase()} CONFIDENCE
             </div>
-            <p style={{ marginBottom: 0 }}>{result.summary}</p>
+            <p style={{ marginBottom: 0, marginTop: "0.6rem", lineHeight: 1.5 }}>{result.summary}</p>
           </div>
-          <Section title="OBSERVATIONS (facts)" items={result.observations} />
-          <Section title="LIKELY CAUSES (hypotheses)" items={result.likelyCauses} tone="warn" />
+          <Section title="FACTS" items={result.observations} />
+          <Section title="LIKELY CAUSES" items={result.likelyCauses} tone="warn" />
           <Section title="EVIDENCE" items={result.evidence} />
           <Section title="RECOMMENDATIONS" items={result.recommendations} />
-          <Section title="LIMITATIONS" items={result.limitations} tone="dim" />
+          <Section title="NOTES" items={result.limitations} tone="dim" />
         </div>
       )}
     </DevicePageFrame>
@@ -119,6 +139,7 @@ function Section({
   items: string[];
   tone?: "warn" | "dim";
 }) {
+  if (!items?.length) return null;
   return (
     <div className="panel" style={{ padding: "1rem" }}>
       <div className="mono" style={{ color: "var(--text-muted)", fontSize: "0.7rem", letterSpacing: "0.1em" }}>
@@ -141,7 +162,6 @@ function Section({
             {item}
           </li>
         ))}
-        {!items.length && <li style={{ color: "var(--text-dim)" }}>None</li>}
       </ul>
     </div>
   );

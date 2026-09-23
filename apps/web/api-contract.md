@@ -35,7 +35,7 @@ Agent ↔ cloud contract. All agent payloads validated with Zod (`@nexus-twin/va
 
 ## AI provider
 
-Uses **Google Gemini** (`GEMINI_API_KEY`). If the key is missing, a deterministic evidence-based fallback still answers (no hallucinated inventing of metrics).
+Uses **Google Gemini** (`GEMINI_API_KEY`, optional `GEMINI_API_KEY_2`… / `GEMINI_API_KEYS`). Quota errors rotate keys in a loop. If all keys fail or none are set, a deterministic evidence-based fallback still answers (no hallucinated inventing of metrics).
 
 ## Ownership
 

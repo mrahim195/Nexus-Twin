@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { heartbeatSchema } from "@nexus-twin/validation";
-import { AgentStatusModel, DeviceModel } from "@nexus-twin/database";
+import { AgentStatusModel } from "@nexus-twin/database";
 import { requireDeviceAuth } from "@/lib/guards";
 import { db } from "@/lib/mongo";
 
@@ -20,30 +20,32 @@ export async function POST(req: Request) {
     }
     await db();
     const now = new Date(body.timestamp);
-    auth.device.lastHeartbeatAt = now;
-    auth.device.lastSeenAt = now;
-    auth.device.agentVersion = body.agentVersion;
-    auth.device.status = body.statusHint || "ONLINE";
-    auth.device.lastKnownReason = null;
-    await auth.device.save();
 
-    await AgentStatusModel.findOneAndUpdate(
+    // One device write — no redundant updateOne
+    await auth.device.updateOne({
+      $set: {
+        lastHeartbeatAt: now,
+        lastSeenAt: now,
+        agentVersion: body.agentVersion,
+        status: body.statusHint || "ONLINE",
+        lastKnownReason: null,
+      },
+    });
+
+    // Lightweight agent presence (no collectors payload)
+    await AgentStatusModel.updateOne(
       { deviceId: auth.device._id },
       {
-        deviceId: auth.device._id,
-        agentVersion: body.agentVersion,
-        connected: true,
-        lastHeartbeatAt: now,
-        telemetryActive: true,
-        lastSyncAt: now,
+        $set: {
+          agentVersion: body.agentVersion,
+          connected: true,
+          lastHeartbeatAt: now,
+          telemetryActive: true,
+          lastSyncAt: now,
+        },
+        $setOnInsert: { deviceId: auth.device._id, queueSize: 0, collectors: [] },
       },
       { upsert: true }
-    );
-
-    // Touch updatedAt via dummy find for offline detectors
-    await DeviceModel.updateOne(
-      { _id: auth.device._id },
-      { $set: { updatedAt: now } }
     );
 
     return NextResponse.json({ ok: true });

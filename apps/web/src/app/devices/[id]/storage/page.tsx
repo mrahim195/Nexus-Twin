@@ -1,11 +1,10 @@
 "use client";
 
 import { fmtBytes, fmtPercent } from "@/components/metrics";
-import { DevicePageFrame, useDeviceId, useLive } from "@/hooks/useDevice";
+import { DevicePageFrame, PageSkeleton, useDevice } from "@/hooks/useDevice";
 
 export default function StoragePage() {
-  const id = useDeviceId();
-  const { live } = useLive(id);
+  const { live, loading } = useDevice();
   const disks =
     (
       live?.metrics as {
@@ -22,10 +21,13 @@ export default function StoragePage() {
 
   return (
     <DevicePageFrame title="STORAGE">
+      {loading && !live ? <PageSkeleton rows={3} /> : null}
+      {!(!live && loading) && (
+      <>
       <p style={{ color: "var(--text-muted)", marginTop: 0 }}>
-        Capacity metadata only — directory category analysis is best-effort and does not upload file contents.
+        Capacity metadata only. Directory analysis does not upload file contents.
       </p>
-      <div style={{ display: "grid", gap: "0.75rem" }}>
+      <div className="card-list">
         {disks.map((d) => (
           <div key={d.mount} className="panel" style={{ padding: "1.1rem" }}>
             <div className="mono" style={{ fontSize: "1.2rem", fontWeight: 600 }}>{d.mount}</div>
@@ -37,21 +39,8 @@ export default function StoragePage() {
               <br />
               FS {d.filesystem || "UNAVAILABLE"}
             </div>
-            <div
-              style={{
-                marginTop: "0.85rem",
-                height: 8,
-                background: "var(--bg)",
-                border: "1px solid var(--border)",
-              }}
-            >
-              <div
-                style={{
-                  height: "100%",
-                  width: `${Math.min(100, d.usedPercent ?? 0)}%`,
-                  background: "var(--accent-dim)",
-                }}
-              />
+            <div style={{ marginTop: "0.85rem", height: 8, background: "var(--bg)", border: "1px solid var(--border)" }}>
+              <div style={{ height: "100%", width: `${Math.min(100, d.usedPercent ?? 0)}%`, background: "var(--accent-dim)" }} />
             </div>
           </div>
         ))}
@@ -61,6 +50,8 @@ export default function StoragePage() {
           </div>
         )}
       </div>
+      </>
+      )}
     </DevicePageFrame>
   );
 }

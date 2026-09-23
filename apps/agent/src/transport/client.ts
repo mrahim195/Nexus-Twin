@@ -22,11 +22,14 @@ export class ApiClient {
 
   async post(path: string, body: unknown, queueKind?: "telemetry" | "processes" | "events"): Promise<boolean> {
     const url = `${this.creds.apiUrl.replace(/\/$/, "")}${path}`;
+    const ac = new AbortController();
+    const timer = setTimeout(() => ac.abort(), 15000);
     try {
       const res = await fetch(url, {
         method: "POST",
         headers: this.headers(),
         body: JSON.stringify(body),
+        signal: ac.signal,
       });
       if (!res.ok) {
         const text = await res.text().catch(() => "");
@@ -43,6 +46,8 @@ export class ApiClient {
         await this.queue.enqueue({ kind: queueKind, body });
       }
       return false;
+    } finally {
+      clearTimeout(timer);
     }
   }
 

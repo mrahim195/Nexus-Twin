@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { DevicePageFrame, useDeviceId } from "@/hooks/useDevice";
+import { useCallback, useState } from "react";
+import { DevicePageFrame, PageSkeleton, useCachedJson, useDeviceId, writeCache } from "@/hooks/useDevice";
 
 interface Anomaly {
   id: string;
@@ -16,35 +16,52 @@ interface Anomaly {
 
 export default function AnomaliesPage() {
   const id = useDeviceId();
-  const [anomalies, setAnomalies] = useState<Anomaly[]>([]);
   const [scanning, setScanning] = useState(false);
+  const cacheId = `${id}:anomalies`;
 
-  const load = useCallback(async (scan = false) => {
-    setScanning(scan);
-    const res = await fetch(`/api/devices/${id}/anomalies${scan ? "?scan=1" : ""}`);
-    setScanning(false);
-    if (res.ok) {
-      const data = await res.json();
-      setAnomalies(data.anomalies || []);
+  const { data: anomalies, loading, reload } = useCachedJson<Anomaly[]>(
+    cacheId,
+    `/api/devices/${id}/anomalies`,
+    {
+      pick: (json) => ((json as { anomalies?: Anomaly[] }).anomalies || []) as Anomaly[],
     }
-  }, [id]);
+  );
 
-  useEffect(() => {
-    void load(true);
-  }, [load]);
+  const list = anomalies || [];
+
+  const scanNow = useCallback(async () => {
+    setScanning(true);
+    try {
+      const res = await fetch(`/api/devices/${id}/anomalies?scan=1`, { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        const next = (data.anomalies || []) as Anomaly[];
+        writeCache(`nexus:twin:res:${cacheId}`, next);
+        await reload();
+      }
+    } finally {
+      setScanning(false);
+    }
+  }, [id, cacheId, reload]);
 
   return (
     <DevicePageFrame title="ANOMALIES">
       <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "0.75rem" }}>
-        <button className="btn" type="button" disabled={scanning} onClick={() => void load(true)}>
-          {scanning ? "SCANNING…" : "SCAN NOW"}
+        <button
+          className={`btn${scanning ? " btn-busy" : ""}`}
+          type="button"
+          disabled={scanning}
+          onClick={() => void scanNow()}
+        >
+          {scanning ? "SCANNING" : "SCAN NOW"}
         </button>
       </div>
-      <div style={{ display: "grid", gap: "0.65rem" }}>
-        {anomalies.map((a) => (
+      {loading && !list.length ? <PageSkeleton rows={3} /> : null}
+      <div className="card-list">
+        {list.map((a) => (
           <div key={a.id} className="panel" style={{ padding: "1rem", borderColor: a.severity === "critical" ? "var(--error)" : "var(--border)" }}>
             <div className="mono" style={{ color: "var(--warn)", fontSize: "0.85rem" }}>
-              ⚠ {a.metric.toUpperCase()} ANOMALY · {a.severity.toUpperCase()}
+              ! {a.metric.toUpperCase()} ANOMALY · {a.severity.toUpperCase()}
             </div>
             <p style={{ margin: "0.5rem 0", color: "var(--text)" }}>{a.explanation}</p>
             <div className="mono" style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>
@@ -56,9 +73,9 @@ export default function AnomaliesPage() {
             </div>
           </div>
         ))}
-        {!anomalies.length && (
+        {!list.length && !loading && (
           <div className="panel" style={{ padding: "1.25rem", color: "var(--text-dim)" }}>
-            No anomalies detected yet. Thresholds + baseline deviations are evaluated on scan.
+            No anomalies detected yet. Tap SCAN NOW to evaluate thresholds and baselines.
           </div>
         )}
       </div>

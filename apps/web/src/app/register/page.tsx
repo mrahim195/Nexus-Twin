@@ -79,8 +79,8 @@ export default function RegisterPage() {
             {typeof error === "string" ? error : "Invalid input"}
           </p>
         )}
-        <button className="btn" type="submit" style={{ width: "100%", marginTop: "1.25rem" }} disabled={loading}>
-          {loading ? "CREATING…" : "REGISTER"}
+        <button className={`btn${loading ? " btn-busy" : ""}`} type="submit" style={{ width: "100%", marginTop: "1.25rem" }} disabled={loading}>
+          {loading ? "CREATING" : "REGISTER"}
         </button>
         <p style={{ marginTop: "1rem", color: "var(--text-dim)", fontSize: "0.85rem" }}>
           Already registered? <Link href="/login">Sign in</Link>

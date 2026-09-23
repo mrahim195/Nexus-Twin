@@ -19,10 +19,20 @@ User question
 
 ```env
 GEMINI_API_KEY=your_key
-GEMINI_MODEL=gemini-2.0-flash
+GEMINI_API_KEY_2=optional_backup
+GEMINI_API_KEY_3=optional_backup
+# Or: GEMINI_API_KEYS=keyA,keyB,keyC
+GEMINI_MODEL=gemini-3.6-flash
 ```
 
 Set in `apps/web/.env.local`. Never expose to the browser or agent.
+
+## Quota / capacity watchdog
+
+- **Keys:** on HTTP 429 / quota, rotates `GEMINI_API_KEY` → `_2` → `_3` → … → first.
+- **Models:** on HTTP 503 / high demand / 404, rotates through env models, then a built-in
+  flash/lite/pro list, then **every text `generateContent` model** discovered from Google's
+  models API (image/TTS/etc excluded). Cached 10 minutes.
 
 ## Cost control
 

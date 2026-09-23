@@ -1,13 +1,13 @@
 /** Default collection & heartbeat intervals (seconds). Overridable via env. */
 
 export const INTERVALS = {
-  heartbeatSec: 20,
-  offlineTimeoutSec: 60,
-  cpuRamSec: 5,
-  networkSec: 5,
-  diskSec: 15,
-  processSec: 20,
-  gpuSec: 10,
+  heartbeatSec: 30,
+  offlineTimeoutSec: 90,
+  cpuRamSec: 10,
+  networkSec: 10,
+  diskSec: 30,
+  processSec: 30,
+  gpuSec: 15,
   hardwareRefreshSec: 300,
 } as const;
 

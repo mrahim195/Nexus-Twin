@@ -58,8 +58,8 @@ export default function LoginPage() {
             {error}
           </p>
         )}
-        <button className="btn" type="submit" style={{ width: "100%", marginTop: "1.25rem" }} disabled={loading}>
-          {loading ? "AUTHENTICATING…" : "SIGN IN"}
+        <button className={`btn${loading ? " btn-busy" : ""}`} type="submit" style={{ width: "100%", marginTop: "1.25rem" }} disabled={loading}>
+          {loading ? "AUTHENTICATING" : "SIGN IN"}
         </button>
         <p style={{ marginTop: "1rem", color: "var(--text-dim)", fontSize: "0.85rem" }}>
           No account? <Link href="/register">Create one</Link>

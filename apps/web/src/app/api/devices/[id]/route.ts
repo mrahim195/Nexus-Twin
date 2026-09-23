@@ -34,7 +34,7 @@ export async function GET(_req: Request, ctx: Ctx) {
       lastKnownReason:
         status === "OFFLINE"
           ? device.lastKnownReason ||
-            "Connection lost — exact reason unknown."
+            "Connection lost. Exact reason unknown."
           : device.lastKnownReason,
     },
   });

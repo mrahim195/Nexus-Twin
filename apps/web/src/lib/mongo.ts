@@ -5,5 +5,12 @@ export async function db() {
   if (!uri) {
     throw new Error("MONGODB_URI is not set");
   }
-  return connectMongo(uri);
+  try {
+    return await connectMongo(uri);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "MongoDB connection failed";
+    throw new Error(
+      `Database unavailable (${message}). Start MongoDB locally or fix MONGODB_URI.`
+    );
+  }
 }

@@ -61,7 +61,7 @@ function mayEmit(key: AlertKey, cooldownMs = 5 * 60_000): boolean {
 }
 
 async function resolveCredentials(): Promise<AgentCredentials> {
-  const apiUrl = process.env.NEXUS_API_URL || "http://localhost:3000";
+  const apiUrl = process.env.NEXUS_API_URL || "http://localhost:4090";
   const existing = await loadCredentials();
   if (existing) {
     return { ...existing, apiUrl: process.env.NEXUS_API_URL || existing.apiUrl };
@@ -169,25 +169,11 @@ async function main(): Promise<void> {
   process.on("SIGINT", () => void shutdown("SIGINT"));
   process.on("SIGTERM", () => void shutdown("SIGTERM"));
 
-  scheduler.every(intervals.heartbeatSec, async () => {
-    if (!cloudEnabled) {
-      log("INFO", "Heartbeat (local)", { at: new Date().toISOString() });
-      return;
-    }
-    const ok = await client.heartbeat({
-      deviceId: creds.deviceId,
-      agentVersion: PRODUCT.agentVersion,
-      timestamp: new Date().toISOString(),
-      statusHint: "ONLINE",
-    });
-    if (ok) {
-      log("INFO", "Heartbeat sent");
-      await client.flushQueue();
-    }
-  });
-
+  // Collector health infrequently — reuse last collectors, no extra OS scrape
+  let lastCollectors: Awaited<ReturnType<typeof collectMetricSnapshot>>["collectors"] = [];
   scheduler.every(intervals.cpuRamSec, async () => {
     const { snapshot, collectors } = await collectMetricSnapshot(creds.deviceId);
+    lastCollectors = collectors;
     if (!cloudEnabled) {
       console.log(
         JSON.stringify(
@@ -195,7 +181,7 @@ async function main(): Promise<void> {
             type: "metric_snapshot",
             cpu: snapshot.cpu.utilizationPercent,
             ram: snapshot.memory.usedPercent,
-            gpu: snapshot.gpu?.utilizationPercent ?? "UNAVAILABLE",
+            gpu: snapshot.gpu?.utilizationPercent ?? "N/A",
             collectors,
           },
           null,
@@ -206,14 +192,6 @@ async function main(): Promise<void> {
     }
 
     await client.telemetry({ snapshots: [snapshot] });
-    await client.agentStatus({
-      deviceId: creds.deviceId,
-      agentVersion: PRODUCT.agentVersion,
-      connected: true,
-      telemetryActive: true,
-      queueSize: queue.size(),
-      collectors,
-    });
 
     const events: Array<Record<string, unknown>> = [];
     const cpu = snapshot.cpu.utilizationPercent;
@@ -256,7 +234,19 @@ async function main(): Promise<void> {
     if (events.length) {
       await client.events({ events });
     }
-  });
+  }, "telemetry");
+
+  scheduler.every(intervals.agentStatusSec, async () => {
+    if (!cloudEnabled) return;
+    await client.agentStatus({
+      deviceId: creds.deviceId,
+      agentVersion: PRODUCT.agentVersion,
+      connected: true,
+      telemetryActive: true,
+      queueSize: queue.size(),
+      collectors: lastCollectors,
+    });
+  }, "agent-status");
 
   scheduler.every(intervals.processSec, async () => {
     const { snapshot } = await collectProcessSnapshot(creds.deviceId);
@@ -281,7 +271,24 @@ async function main(): Promise<void> {
       return;
     }
     await client.processes(snapshot);
-  });
+  }, "processes");
+
+  scheduler.every(intervals.heartbeatSec, async () => {
+    if (!cloudEnabled) {
+      log("INFO", "Heartbeat (local)", { at: new Date().toISOString() });
+      return;
+    }
+    const ok = await client.heartbeat({
+      deviceId: creds.deviceId,
+      agentVersion: PRODUCT.agentVersion,
+      timestamp: new Date().toISOString(),
+      statusHint: "ONLINE",
+    });
+    if (ok) {
+      log("INFO", "Heartbeat sent");
+      await client.flushQueue();
+    }
+  }, "heartbeat");
 
   log("INFO", "Scheduler running", intervals);
 }

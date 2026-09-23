@@ -46,16 +46,19 @@ export async function requireDeviceAuth(
   }
   const token = authHeader.slice("Bearer ".length).trim();
   await db();
-  const cred = await DeviceCredentialModel.findOne({
-    deviceId: deviceIdHeader,
-    tokenHash: hashToken(token),
-    revokedAt: null,
-  });
-  if (!cred) return null;
-  const device = await DeviceModel.findOne({
-    _id: deviceIdHeader,
-    revokedAt: null,
-  });
-  if (!device) return null;
+
+  const [cred, device] = await Promise.all([
+    DeviceCredentialModel.findOne({
+      deviceId: deviceIdHeader,
+      tokenHash: hashToken(token),
+      revokedAt: null,
+    }),
+    DeviceModel.findOne({
+      _id: deviceIdHeader,
+      revokedAt: null,
+    }),
+  ]);
+
+  if (!cred || !device) return null;
   return { device, cred };
 }

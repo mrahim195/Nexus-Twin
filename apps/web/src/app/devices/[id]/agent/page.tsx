@@ -1,10 +1,9 @@
 "use client";
 
-import { DevicePageFrame, useDeviceId, useLive } from "@/hooks/useDevice";
+import { DevicePageFrame, PageSkeleton, useDevice } from "@/hooks/useDevice";
 
 export default function AgentPage() {
-  const id = useDeviceId();
-  const { live, meta } = useLive(id);
+  const { live, meta, deviceId, loading } = useDevice();
 
   const agent = live?.agent as {
     agentVersion?: string;
@@ -18,9 +17,12 @@ export default function AgentPage() {
 
   return (
     <DevicePageFrame title="AGENT STATUS">
+      {loading && !live ? <PageSkeleton rows={3} /> : null}
+      {!(!live && loading) && (
+      <>
       <div className="panel" style={{ padding: "1.1rem" }}>
         <div className="mono" style={{ fontSize: "0.9rem", lineHeight: 2, color: "var(--text-muted)" }}>
-          Device {meta?.name || id}
+          Device {meta?.name || deviceId}
           <br />
           Version {agent?.agentVersion || "UNAVAILABLE"}
           <br />
@@ -43,13 +45,13 @@ export default function AgentPage() {
       <h2 className="mono" style={{ fontSize: "1rem", marginTop: "1.25rem" }}>
         COLLECTORS
       </h2>
-      <div style={{ display: "grid", gap: "0.5rem" }}>
+      <div className="card-list">
         {(agent?.collectors || []).map((c) => (
           <div key={c.name} className="panel" style={{ padding: "0.85rem 1rem" }}>
             <div className="mono" style={{ display: "flex", justifyContent: "space-between" }}>
               <span>{c.name}</span>
               <span style={{ color: c.health === "OK" ? "var(--accent)" : "var(--warn)" }}>
-                {c.health === "OK" ? "✓" : "⚠"} {c.health}
+                {c.health === "OK" ? "OK" : c.health}
               </span>
             </div>
             {c.reason && (
@@ -65,6 +67,8 @@ export default function AgentPage() {
           </div>
         )}
       </div>
+      </>
+      )}
     </DevicePageFrame>
   );
 }

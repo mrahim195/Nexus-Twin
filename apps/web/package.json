@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --port 3000",
+    "dev": "next dev --port 4090",
     "build": "next build",
-    "start": "next start",
+    "start": "next start --port 4090",
     "lint": "next lint",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "clean": "rimraf .next",

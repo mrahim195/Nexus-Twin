@@ -1,7 +1,7 @@
 "use client";
 
 import { fmtBytes } from "@/components/metrics";
-import { DevicePageFrame, useDeviceId, useLive } from "@/hooks/useDevice";
+import { DevicePageFrame, PageSkeleton, useDevice } from "@/hooks/useDevice";
 
 function aggregate(
   processes: Array<{ name: string; cpuPercent: number | null; memoryBytes: number | null }>
@@ -25,8 +25,7 @@ function aggregate(
 }
 
 export default function ApplicationsPage() {
-  const id = useDeviceId();
-  const { live } = useLive(id);
+  const { live, loading } = useDevice();
   const apps = aggregate(
     (live?.processes as Array<{ name: string; cpuPercent: number | null; memoryBytes: number | null }>) ||
       []
@@ -34,26 +33,29 @@ export default function ApplicationsPage() {
 
   return (
     <DevicePageFrame title="ACTIVE APPLICATIONS">
-      <div style={{ display: "grid", gap: "0.55rem" }}>
-        {apps.map((a) => (
-          <div key={a.name} className="panel" style={{ padding: "0.9rem 1rem", display: "flex", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
-            <div>
-              <div className="mono" style={{ fontWeight: 600 }}>{a.name.toUpperCase()}</div>
-              <div className="mono" style={{ color: "var(--text-muted)", fontSize: "0.8rem", marginTop: "0.3rem" }}>
-                {a.count} processes · CPU {Math.round(a.cpu * 10) / 10}% · {fmtBytes(a.ram)}
+      {loading && !live ? <PageSkeleton rows={3} /> : null}
+      {!(!live && loading) && (
+        <div className="card-list">
+          {apps.map((a) => (
+            <div key={a.name} className="panel" style={{ padding: "0.9rem 1rem", display: "flex", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
+              <div>
+                <div className="mono" style={{ fontWeight: 600 }}>{a.name.toUpperCase()}</div>
+                <div className="mono" style={{ color: "var(--text-muted)", fontSize: "0.8rem", marginTop: "0.3rem" }}>
+                  {a.count} processes · CPU {Math.round(a.cpu * 10) / 10}% · {fmtBytes(a.ram)}
+                </div>
+              </div>
+              <div className="mono" style={{ color: a.status.includes("HIGH") ? "var(--warn)" : "var(--accent)", fontSize: "0.8rem" }}>
+                {a.status}
               </div>
             </div>
-            <div className="mono" style={{ color: a.status.includes("HIGH") ? "var(--warn)" : "var(--accent)", fontSize: "0.8rem" }}>
-              {a.status}
+          ))}
+          {!apps.length && (
+            <div className="panel" style={{ padding: "1.25rem", color: "var(--text-dim)" }}>
+              No application aggregates yet.
             </div>
-          </div>
-        ))}
-        {!apps.length && (
-          <div className="panel" style={{ padding: "1.25rem", color: "var(--text-dim)" }}>
-            No application aggregates yet.
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </DevicePageFrame>
   );
 }
